@@ -5,6 +5,7 @@
 
 import List from "./list.ts";
 import Read from "./read.ts";
+import ReadBinary from "./read-binary.ts";
 import Search from "./search.ts";
 import Meta from "./meta.ts";
 import Write from "./write.ts";
@@ -16,6 +17,7 @@ import Grep from "./grep.ts";
 const commands = {
     list: List,
     read: Read,
+    "read-binary": ReadBinary,
     search: Search,
     meta: Meta,
     write: Write,

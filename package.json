@@ -18,6 +18,7 @@
   "scripts": {
     "list": "node --import tsx/esm --experimental-loader ./path-loader.mjs src/index.ts list",
     "read": "node --import tsx/esm --experimental-loader ./path-loader.mjs src/index.ts read",
+    "read-binary": "node --import tsx/esm --experimental-loader ./path-loader.mjs src/index.ts read-binary",
     "search": "node --import tsx/esm --experimental-loader ./path-loader.mjs src/index.ts search",
     "meta": "node --import tsx/esm --experimental-loader ./path-loader.mjs src/index.ts meta",
     "write": "node --import tsx/esm --experimental-loader ./path-loader.mjs src/index.ts write",
