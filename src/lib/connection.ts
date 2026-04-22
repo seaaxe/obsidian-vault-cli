@@ -24,7 +24,58 @@ if (typeof globalThis.localStorage === "undefined") {
     };
 }
 
-// ── 2. Import (after localStorage polyfill) ─────────────────────────────────
+// ── 1b. Polyfill FileReader (needed for binary writes on Node < 22) ────────
+// octagonal-wheels' base64 encoder dispatches to a browser-style path when
+// `Uint8Array.prototype.toBase64` is absent (Node 20 lacks it; Node 22+ has
+// it natively). For payloads larger than 32 KiB the browser path uses
+// FileReader.readAsDataURL, which is undefined in Node. Without this
+// polyfill, `dfm.put` on a binary Blob fails with:
+//     ReferenceError: FileReader is not defined
+// We back the polyfill with Node's Buffer, which is faster than a real
+// FileReader anyway.
+if (typeof (globalThis as any).FileReader === "undefined") {
+    class FileReaderPolyfill {
+        public onload: ((ev: { target: FileReaderPolyfill }) => void) | null = null;
+        public onerror: ((ev: { target: FileReaderPolyfill; error: unknown }) => void) | null = null;
+        public result: string | ArrayBuffer | null = null;
+        public readyState = 0;
+        async readAsDataURL(blob: Blob): Promise<void> {
+            try {
+                const buf = Buffer.from(await blob.arrayBuffer());
+                const mime = blob.type || "application/octet-stream";
+                this.result = `data:${mime};base64,${buf.toString("base64")}`;
+                this.readyState = 2;
+                if (this.onload) this.onload({ target: this });
+            } catch (error) {
+                if (this.onerror) this.onerror({ target: this, error });
+                else throw error;
+            }
+        }
+        async readAsArrayBuffer(blob: Blob): Promise<void> {
+            try {
+                this.result = await blob.arrayBuffer();
+                this.readyState = 2;
+                if (this.onload) this.onload({ target: this });
+            } catch (error) {
+                if (this.onerror) this.onerror({ target: this, error });
+                else throw error;
+            }
+        }
+        async readAsText(blob: Blob, _enc?: string): Promise<void> {
+            try {
+                this.result = await blob.text();
+                this.readyState = 2;
+                if (this.onload) this.onload({ target: this });
+            } catch (error) {
+                if (this.onerror) this.onerror({ target: this, error });
+                else throw error;
+            }
+        }
+    }
+    (globalThis as any).FileReader = FileReaderPolyfill;
+}
+
+// ── 2. Import (after polyfills) ─────────────────────────────────────────────
 import { DirectFileManipulator } from "../../livesync-commonlib/src/API/DirectFileManipulator.ts";
 import type { DirectFileManipulatorOptions } from "../../livesync-commonlib/src/API/DirectFileManipulatorV2.ts";
 import { DEFAULT_SETTINGS } from "../../livesync-commonlib/src/common/types.ts";

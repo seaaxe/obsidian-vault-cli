@@ -9,6 +9,7 @@ import ReadBinary from "./read-binary.ts";
 import Search from "./search.ts";
 import Meta from "./meta.ts";
 import Write from "./write.ts";
+import WriteBinary from "./write-binary.ts";
 import Delete from "./delete.ts";
 import Dump from "./dump.ts";
 import Patch from "./patch.ts";
@@ -21,6 +22,7 @@ const commands = {
     search: Search,
     meta: Meta,
     write: Write,
+    "write-binary": WriteBinary,
     delete: Delete,
     dump: Dump,
     patch: Patch,

@@ -22,6 +22,7 @@
     "search": "node --import tsx/esm --experimental-loader ./path-loader.mjs src/index.ts search",
     "meta": "node --import tsx/esm --experimental-loader ./path-loader.mjs src/index.ts meta",
     "write": "node --import tsx/esm --experimental-loader ./path-loader.mjs src/index.ts write",
+    "write-binary": "node --import tsx/esm --experimental-loader ./path-loader.mjs src/index.ts write-binary",
     "delete": "node --import tsx/esm --experimental-loader ./path-loader.mjs src/index.ts delete",
     "dump": "node --import tsx/esm --experimental-loader ./path-loader.mjs src/index.ts dump",
     "patch": "node --import tsx/esm --experimental-loader ./path-loader.mjs src/index.ts patch",
