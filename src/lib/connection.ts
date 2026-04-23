@@ -302,6 +302,14 @@ export async function listFiles(dfm: DirectFileManipulator): Promise<VaultEntry[
     for (const [start, end] of ranges) {
         for await (const entry of dfm.liveSyncLocalDB.findEntries(start, end, {})) {
             if (entry && "path" in entry) {
+                // Skip tombstones. LiveSync marks soft-deleted parent docs
+                // with `deleted: true` (ctime/mtime/size zeroed, children[]
+                // emptied). The chunks they referenced often still exist in
+                // the DB, so enumerating naively surfaces paths the Obsidian
+                // client correctly hides. Honour the tombstone here so every
+                // downstream verb (list/search/grep/meta) agrees with the
+                // client.
+                if ((entry as any).deleted === true) continue;
                 files.push({
                     path: (entry as any).path as string,
                     id: (entry as any)._id as string,
