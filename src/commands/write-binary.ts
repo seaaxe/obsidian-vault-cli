@@ -10,6 +10,10 @@
  * which routes through the `"newnote"` attachment path inside
  * DirectFileManipulator.put.
  *
+ * NOT for text-extension paths (.md .txt .svg .html .csv .css .js .xml .canvas):
+ * readers classify those as text by path alone, so a binary attachment doc is
+ * unreadable on every client. Those go through `write`. Guarded in run().
+ *
  * Usage: obsidian-vault write-binary <path> --input <file>
  *        cat photo.jpg | obsidian-vault write-binary Attachments/photo.jpg
  */
@@ -18,6 +22,7 @@ import fs from "node:fs";
 import { Command, Args, Flags } from "@oclif/core";
 import { createDFM } from "../lib/connection.ts";
 import { createBinaryBlob } from "../../livesync-commonlib/src/common/utils.ts";
+import { isPlainText } from "../../livesync-commonlib/src/string_and_binary/path.ts";
 
 async function readStdinBytes(): Promise<Uint8Array> {
     return new Promise((resolve, reject) => {
@@ -32,7 +37,8 @@ async function readStdinBytes(): Promise<Uint8Array> {
 
 export default class WriteBinary extends Command {
     static description =
-        "Write raw bytes to a vault file as a proper attachment (binary-safe, stored as type: newnote)";
+        "Write raw bytes to a vault file as a proper attachment (binary-safe, stored as type: newnote). " +
+        "Text-extension paths (.md .txt .svg .html .csv .css .js .xml .canvas) are refused — use `write`.";
 
     static examples = [
         '<%= config.bin %> write-binary "Attachments/photo.jpg" --input /tmp/photo.jpg',
@@ -61,6 +67,25 @@ export default class WriteBinary extends Command {
 
     async run(): Promise<void> {
         const { args, flags } = await this.parse(WriteBinary);
+
+        // Readers classify text-vs-binary by PATH, not by what the document says:
+        // isTextDocument() (livesync-commonlib/src/common/utils.ts) returns true when
+        // isPlainText(doc.path) is true, regardless of type/datatype. So a "newnote"
+        // doc — whose body is base64 — is read back through createTextBlob(), and the
+        // client compares doc.size (raw bytes) against the base64 length and refuses
+        // the file: "seems to be corrupted! Writing prevented. (114839 != 153128)".
+        // That failure is permanent and it is not confined to the one file: a failed
+        // entry makes prepareDatabaseForUse() return before markIsReady(), which gates
+        // ALL replication behind "[ReplicationService] Not ready" (upstream #1164).
+        // Cost us six days of silent desync on 2026-09-19 via attachments/*.html.
+        if (isPlainText(args.path)) {
+            this.error(
+                `Refusing '${args.path}': .md/.txt/.svg/.html/.csv/.css/.js/.xml/.canvas are ` +
+                    `classified as text by path, so storing them as a binary attachment makes ` +
+                    `every client reject the file as size-mismatched — and one rejected file ` +
+                    `stops that client replicating entirely. Use \`write\` for these paths.`
+            );
+        }
 
         let bytes: Uint8Array;
         if (flags.input) {
